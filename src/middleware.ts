@@ -20,14 +20,17 @@ interface IBasicRunProps<Props, Data> {
 }
 type IActiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props, Data>, Data>
 type IPassiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props, Data>, void>
-export type Hooks = 'cache' | 'resolved' | 'rejected' | 'finished' | 'finally' | 'willLoad' | 'willRequest'
+export type Hooks =
+  'cache' | 'resolved' | 'rejected' | 'finished' | 'finally' | 'willLoad' | 'willRequest'
+  | 'willAbort' | 'aborted'
+  | 'subscription' | 'hasSubscription' | 'unsubscription' | 'noSubscriptions'
 export interface IMiddleware<Data, Props> {
-  // willAbort
-  // aborted
-  // subscription
-  // hasSubscription
-  // unsubscription
-  // noSubscriptions
+  willAbort?: IPassiveMiddlewareFunction<Props, Data>
+  aborted?: IActiveMiddlewareFunction<Props, Data>
+  subscription?: IPassiveMiddlewareFunction<Props, Data>
+  hasSubscription?: IPassiveMiddlewareFunction<Props, Data>
+  unsubscription?: IPassiveMiddlewareFunction<Props, Data>
+  noSubscriptions?: IPassiveMiddlewareFunction<Props, Data>
   willLoad?: IPassiveMiddlewareFunction<Props, Data>
   willRequest?: IPassiveMiddlewareFunction<Props, Data>
   cache?: IActiveMiddlewareFunction<Props, Data>

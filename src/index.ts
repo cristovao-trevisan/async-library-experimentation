@@ -22,6 +22,11 @@ function createResource<Data, Props = any> (
     props: Props,
     state: State<Data>
   }
+  interface IAbortHookProps {
+    hash: string,
+    state: State<Data>
+    abortController?: AbortController
+  }
 
   // options
   let abortController = options.abortController
@@ -33,10 +38,17 @@ function createResource<Data, Props = any> (
   let currentHash: string | undefined
   let subscriptions: ISubscription<Data>[] = []
 
+  // helpers
   const applyRunHook = <Return>(name: Hooks, props: Props, value: Return) => applyMiddlewareHook<Data, Props, IRunHookProps, Return>
-    (middleware, 'willLoad')
+    (middleware, name)
     ({ hash: currentHash!, props, state }, value)
-
+  const applyAbortHook = <Return>(name: Hooks, value: Return) => applyMiddlewareHook<Data, Props, IAbortHookProps, Return>
+    (middleware, name)
+    ({ hash: currentHash!, state, abortController }, value)
+  const applySubscriptionHook = (name: Hooks) => applyMiddlewareHook<Data, Props, IAbortHookProps, void>
+    (middleware, name)
+    ({ hash: currentHash!, state, abortController })
+  
   // functions
   const callSubscriptions = () => subscriptions.forEach(cb => cb(state))
   const doAbort = () => {
@@ -46,19 +58,23 @@ function createResource<Data, Props = any> (
 
   // api
   const API: IResource<Data, Props> = {
-    abort() {
-      // TODO: willAbort hook
+    async abort() {
+      await applyAbortHook<void>('willAbort', undefined)
       doAbort()
-      // TODO: aborted hook
+      state = await applyAbortHook<State<Data>>('aborted', state)
       callSubscriptions()
     },
     subscribe(cb) {
       subscriptions.push(cb)
-      // TODO: new subs hook and first subs hook
+      applySubscriptionHook('subscription')
+      if (subscriptions.length === 1) applySubscriptionHook('hasSubscription')
       const unsubscribe = () => {
-        // TODO: unsubs hook and no subs hook
+        applySubscriptionHook('unsubscription')
         subscriptions = subscriptions.filter(x => x !== cb)
-        if (subscriptions.length === 0) doAbort()
+        if (subscriptions.length === 0) {
+          applySubscriptionHook('noSubscriptions')
+          doAbort()
+        }
       }
       return unsubscribe
     },
