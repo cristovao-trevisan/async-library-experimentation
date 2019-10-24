@@ -13,12 +13,13 @@ export interface IMiddlewareFunction<Options = any, Return = undefined | void> {
   ): Return | Promise<Return>
 }
 
-interface IBasicRunProps<Props> {
+interface IBasicRunProps<Props, Data> {
   props: Props
   hash: string
+  state: State<Data>
 }
-type IActiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props>, State<Data>>
-type IPassiveMiddlewareFunction<Props> = IMiddlewareFunction<IBasicRunProps<Props>, void>
+type IActiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props, Data>, Data>
+type IPassiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props, Data>, void>
 export interface IMiddleware<Data, Props> {
   // willAbort
   // aborted
@@ -32,7 +33,7 @@ export interface IMiddleware<Data, Props> {
   // resolved
   // rejected
   // finally
-  finished?: IPassiveMiddlewareFunction<Props>
+  finished?: IPassiveMiddlewareFunction<Props, Data>
 }
 
 export interface IMiddlewareBuilder<Data, Props> {
@@ -70,5 +71,7 @@ export async function executeMiddlewareFunctions<Options, Return>(
   })
 }
 
-// export function applyMiddlewareHook<Data, Props>(middlewareList: IMiddleware<Data, Props>[]) {
-// }
+export function applyMiddlewareHook<Data, Props, Options, Return>(middlewareList: IMiddleware<Data, Props>[], key: 'cache' | 'finished') {
+  const middleware = middlewareList.map(item => item[key]).filter(x => !!x) as IMiddlewareFunction<any, any>[]
+  return (options: Options, initialState: Return) => executeMiddlewareFunctions<Options, Return>(middleware, options, initialState)
+}
