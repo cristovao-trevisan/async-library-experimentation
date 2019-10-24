@@ -20,6 +20,7 @@ interface IBasicRunProps<Props, Data> {
 }
 type IActiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props, Data>, Data>
 type IPassiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props, Data>, void>
+type Hooks = 'cache' | 'resolved' | 'rejected' | 'finished' | 'finally' | 'willLoad' | 'willRequest'
 export interface IMiddleware<Data, Props> {
   // willAbort
   // aborted
@@ -27,12 +28,12 @@ export interface IMiddleware<Data, Props> {
   // hasSubscription
   // unsubscription
   // noSubscriptions
-  // willLoad
-  // willRequest
+  willLoad?: IPassiveMiddlewareFunction<Props, Data>
+  willRequest?: IPassiveMiddlewareFunction<Props, Data>
   cache?: IActiveMiddlewareFunction<Props, Data>
-  // resolved
-  // rejected
-  // finally
+  resolved?: IActiveMiddlewareFunction<Props, Data>
+  rejected?: IActiveMiddlewareFunction<Props, Data>
+  finally?: IActiveMiddlewareFunction<Props, Data>
   finished?: IPassiveMiddlewareFunction<Props, Data>
 }
 
@@ -71,7 +72,7 @@ export async function executeMiddlewareFunctions<Options, Return>(
   })
 }
 
-export function applyMiddlewareHook<Data, Props, Options, Return>(middlewareList: IMiddleware<Data, Props>[], key: 'cache' | 'finished') {
+export function applyMiddlewareHook<Data, Props, Options, Return>(middlewareList: IMiddleware<Data, Props>[], key: Hooks) {
   const middleware = middlewareList.map(item => item[key]).filter(x => !!x) as IMiddlewareFunction<any, any>[]
   return (options: Options, initialState: Return) => executeMiddlewareFunctions<Options, Return>(middleware, options, initialState)
 }
