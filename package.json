@@ -1,0 +1,18 @@
+{
+  "name": "@async-resource/async-lib",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node-fetch": "^2.5.2",
+    "node-fetch": "^2.6.0",
+    "typescript": "^3.6.4"
+  }
+}
