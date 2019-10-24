@@ -1,11 +1,6 @@
 import { createResource } from '.'
 import { IUserInfo, IUserInfoProps } from './example'
-import { IMiddleware } from './middleware'
 import { initialState } from './state'
-
-const runMiddleware = ['cache', 'resolved', 'rejected', 'finished', 'finally', 'willLoad', 'willRequest']
-const abortMiddleware = ['willAbort', 'aborted']
-const subscriptionMiddleware = ['subscription', 'hasSubscription', 'unsubscription', 'noSubscriptions']
 
 test('e2e', async () => {
   const expectedUserInfo = {
