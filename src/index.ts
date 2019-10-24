@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 import { State, initialState, resolvedState, rejectedState } from "./state"
 import { hashCode } from './hash'
 import { IResource, ISubscription } from './types'
-import { executeMiddlewareFunctions, IMiddleware, applyMiddlewareHook, IMiddlewareBuilder } from './middleware'
+import { executeMiddlewareFunctions, IMiddleware, applyMiddlewareHook, IMiddlewareBuilder, Hooks } from './middleware'
 import { inMemoryCache } from './middleware-imp/in-memory-cache'
 
 
@@ -33,7 +33,7 @@ function createResource<Data, Props = any> (
   let currentHash: string | undefined
   let subscriptions: ISubscription<Data>[] = []
 
-  const applyRunHook = <Return>(name: string, props: Props, value: Return) => applyMiddlewareHook<Data, Props, IRunHookProps, Return>
+  const applyRunHook = <Return>(name: Hooks, props: Props, value: Return) => applyMiddlewareHook<Data, Props, IRunHookProps, Return>
     (middleware, 'willLoad')
     ({ hash: currentHash!, props, state }, value)
 
@@ -78,45 +78,27 @@ function createResource<Data, Props = any> (
       if (state.pending) return state
       currentHash = newHash
       try {
+        // loading phase
         state = { ...state, pending: true }
-        // willLoad hook
-        await applyMiddlewareHook<Data, Props, IRunHookProps, void>
-          (middleware, 'willLoad')
-          ({ hash: currentHash, props, state })
+        await applyRunHook<void>('willLoad', props, undefined)
         callSubscriptions()
-        // willRequest hook
-        await applyMiddlewareHook<Data, Props, IRunHookProps, void>
-          (middleware, 'willRequest')
-          ({ hash: currentHash, props, state })
-        // cache hook
-        const cachedData = await applyMiddlewareHook<Data, Props, IRunHookProps, Data | undefined>
-          (middleware, 'cache')
-          ({ hash: currentHash, props, state }, undefined)
+        await applyRunHook<void>('willRequest', props, undefined)
+
+        // cache and fetch
+        const cachedData = await applyRunHook<Data | undefined>('cache', props, state.data)
         if (cachedData) state = resolvedState(cachedData)
         else {
           const data = await options.fn(props, state.data, abortController)
           state = resolvedState(data)
         }
-        // resolved hook
-        state = await applyMiddlewareHook<Data, Props, IRunHookProps, State<Data>>
-          (middleware, 'resolved')
-          ({ hash: currentHash, props, state }, { ...state })
+        state = await applyRunHook<State<Data>>('resolved', props, { ...state })
       } catch (error) {
         state = rejectedState(error as Error)
-        // rejected hook
-        state = await applyMiddlewareHook<Data, Props, IRunHookProps, State<Data>>
-          (middleware, 'rejected')
-          ({ hash: currentHash, props, state }, { ...state })
+        state = await applyRunHook<State<Data>>('rejected', props, { ...state })
       }
-      // finally hook
-      state = await applyMiddlewareHook<Data, Props, IRunHookProps, State<Data>>
-          (middleware, 'finally')
-          ({ hash: currentHash, props, state }, { ...state })
+      state = await applyRunHook<State<Data>>('finally', props, { ...state })
       callSubscriptions()
-      // finished hook
-      await applyMiddlewareHook<Data, Props, IRunHookProps, void>
-          (middleware, 'finished')
-          ({ hash: currentHash, props, state })
+      await applyRunHook<void>('finished', props, undefined)
       return state
     },
   }
