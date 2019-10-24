@@ -1,12 +1,12 @@
 import fetch from 'node-fetch'
 import { createResource, inMemoryCache } from "."
 
-interface IUserInfo {
+export interface IUserInfo {
   id: number
   name: string
   phone: string
 }
-interface IUserInfoProps {
+export interface IUserInfoProps {
   id: number
 }
 const getUserInfo = async ({ id } : IUserInfoProps) : Promise<IUserInfo> => {

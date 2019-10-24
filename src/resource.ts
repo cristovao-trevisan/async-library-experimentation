@@ -1,4 +1,4 @@
-import { State, initialState, resolvedState, rejectedState } from "./state"
+import { State, initialState, resolvedState, rejectedState } from './state'
 import { hashCode } from './hash'
 import { IResource, ISubscription } from './types'
 import { IMiddleware, applyMiddlewareHook, IMiddlewareBuilder, Hooks } from './middleware'
@@ -63,6 +63,7 @@ export function createResource<Data, Props = any> (
       callSubscriptions()
     },
     subscribe(cb) {
+      cb(state)
       subscriptions.push(cb)
       applySubscriptionHook('subscription')
       if (subscriptions.length === 1) applySubscriptionHook('hasSubscription')
