@@ -96,12 +96,12 @@ export function createResource<Data, Props = any> (
         state = { ...state, pending: true }
         await applyRunHook<void>('willLoad', props, undefined)
         callSubscriptions()
-        await applyRunHook<void>('willRequest', props, undefined)
-
+        
         // cache and fetch
         const cachedData = await applyRunHook<Data | undefined>('cache', props, state.data)
         if (cachedData) state = resolvedState(cachedData)
         else {
+          await applyRunHook<void>('willRequest', props, undefined)
           const data = await options.fn(props, state.data, abortController)
           state = resolvedState(data)
         }

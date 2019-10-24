@@ -18,28 +18,43 @@ interface IBasicRunProps<Props, Data> {
   hash: string
   state: State<Data>
 }
+/** Active means it's return sets a value (state, data, etc...) */
 type IActiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props, Data>, Data>
+/** Passive means it doesn't have any affect */
 type IPassiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props, Data>, void>
+/** List of all available hooks */
 export type Hooks =
   'cache' | 'resolved' | 'rejected' | 'finished' | 'finally' | 'willLoad' | 'willRequest'
   | 'willAbort' | 'aborted'
   | 'subscription' | 'hasSubscription' | 'unsubscription' | 'noSubscriptions'
+
+/** Middleware interface, returned by the builder and used by the Resource API */
 export interface IMiddleware<Data, Props> {
   willAbort?: IPassiveMiddlewareFunction<Props, Data>
   aborted?: IActiveMiddlewareFunction<Props, Data>
+  /** Called every time a subscription is added */
   subscription?: IPassiveMiddlewareFunction<Props, Data>
+  /** Called when a subscription is added and there was none before */
   hasSubscription?: IPassiveMiddlewareFunction<Props, Data>
   unsubscription?: IPassiveMiddlewareFunction<Props, Data>
+  /** Called when the only existing subscription is removed */
   noSubscriptions?: IPassiveMiddlewareFunction<Props, Data>
+  /** Called when run will begin */
   willLoad?: IPassiveMiddlewareFunction<Props, Data>
-  willRequest?: IPassiveMiddlewareFunction<Props, Data>
+  /** If a value is returned, it is used instead of calling fn  */
   cache?: IActiveMiddlewareFunction<Props, Data>
+  /** Called before fn is called  */
+  willRequest?: IPassiveMiddlewareFunction<Props, Data>
   resolved?: IActiveMiddlewareFunction<Props, Data>
   rejected?: IActiveMiddlewareFunction<Props, Data>
   finally?: IActiveMiddlewareFunction<Props, Data>
   finished?: IPassiveMiddlewareFunction<Props, Data>
 }
 
+/**
+ * This is how Middleware should be declared, as createResource
+ * creates the middleware using this signature
+ */
 export interface IMiddlewareBuilder<Data, Props> {
   (API: IResource<Data, Props>): IMiddleware<Data, Props>
 }
@@ -79,6 +94,10 @@ export async function executeMiddlewareFunctions<Options, Return>(
   })
 }
 
+/**
+ * TODO: improve type usage (remove any)
+ * Selects and filter the middleware for the given hook, then executes it
+ */
 export function applyMiddlewareHook<Data, Props, Options, Return>(middlewareList: IMiddleware<Data, Props>[], key: Hooks) {
   const middleware = middlewareList.map(item => item[key]).filter(x => !!x) as IMiddlewareFunction<any, any>[]
   return (options: Options, initialState: Return) => executeMiddlewareFunctions<Options, Return>(middleware, options, initialState)
