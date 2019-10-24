@@ -16,8 +16,8 @@ const getUserInfo = async ({ id } : IUserInfoProps) : Promise<IUserInfo> => {
 
 
 async function main() {
-  // const middleware = [inMemoryCache<IUserInfo, IUserInfoProps>()]
-  const middleware = undefined
+  const middleware = [inMemoryCache<IUserInfo, IUserInfoProps>()]
+  // const middleware = undefined
   const resource = createResource({ fn: getUserInfo }, middleware)
   const userInfo = await resource.run({ id: 1 })
   await resource.run({ id: 2 }, { reload: true })
