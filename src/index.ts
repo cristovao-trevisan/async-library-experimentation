@@ -33,8 +33,9 @@ function createResource<Data, Props = any> (
   // api
   const API: IResource<Data, Props> = {
     abort() {
-      // TODO: abort hook
+      // TODO: willAbort hook
       doAbort()
+      // TODO: aborted
       callSubscriptions()
     },
     subscribe(cb) {
@@ -64,8 +65,9 @@ function createResource<Data, Props = any> (
       try {
         currentHash = newHash
         state = { ...state, pending: true }
+        // TODO: willLoad hook
         callSubscriptions()
-        // TODO: pre-request hook
+        // TODO: willRequest hook
         const data = await options.fn(props, state.data, abortController) // TODO: cache hook
         // TODO: resolved hook
         state = resolvedState(data)
@@ -73,8 +75,9 @@ function createResource<Data, Props = any> (
         // TODO: rejected hook
         state = rejectedState(error as Error)
       }
-      // TODO: finished hook
+      // TODO: finally hook
       callSubscriptions()
+      // TODO: finished hook
       return state
     },
   }

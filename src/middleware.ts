@@ -12,6 +12,18 @@ interface ICacheProps<Props> {
 
 export interface IMiddleware<Data, Props> {
   (API: IResource<Data, Props>): ({
+    // willAbort
+    // aborted
+    // subscription
+    // hasSubscription
+    // unsubscription
+    // noSubscriptions
+    // willLoad
+    // willRequest
     cache?: IMiddlewareFunction<ICacheProps<Props>, void, Data | undefined>
+    // resolved
+    // rejected
+    // finally
+    // finished
   })
 }
