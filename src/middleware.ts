@@ -44,6 +44,10 @@ export interface IMiddlewareBuilder<Data, Props> {
   (API: IResource<Data, Props>): IMiddleware<Data, Props>
 }
 
+/**
+ * Wraps all middleware functions by linking each item as the next function
+ * of the previous one, then executes everything
+ */
 export async function executeMiddlewareFunctions<Options, Return>(
   middlewareFunctions: IMiddlewareFunction<Options, Return>[],
   options: Options,
