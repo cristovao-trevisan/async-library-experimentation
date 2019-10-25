@@ -32,11 +32,11 @@ export type Hooks =
 
 /** Middleware interface, returned by the builder and used by the Resource instance */
 export interface IMiddleware<Data, Props> {
-  // ABORT HOOKS
+  // -------------    ABORT HOOKS     -------------
   willAbort?: IAbortHookFunction<Data>
   aborted?: IAbortHookFunction<Data, State<Data>>
 
-  // SUBSCRIPTION HOOKS
+  // ------------- SUBSCRIPTION HOOKS -------------
   /** Called every time a subscription is added */
   subscription?: ISubscriptionHookFunction<Data>
   /** Called when a subscription is added and there was none before */
@@ -45,7 +45,7 @@ export interface IMiddleware<Data, Props> {
   /** Called when the only existing subscription is removed */
   noSubscriptions?: ISubscriptionHookFunction<Data>
 
-  // RUN HOOKS
+  // -------------     RUN HOOKS      -------------
   /** Called when run will begin */
   willLoad?: IRunHookFunction<Props, Data>
   /** If a value is returned, it is used instead of calling fn  */
