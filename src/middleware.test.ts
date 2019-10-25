@@ -2,13 +2,13 @@ import { IMiddlewareFunction, executeMiddlewareFunctions } from './middleware'
 
 describe('executeMiddlewareFunctions', () => {
   test('should work', async () => {
-    interface Options { increment: boolean }
     interface Return { count: number }
+    interface Options { increment: boolean, state: Return }
     type MyMiddleware = IMiddlewareFunction<Options, Return>
 
     const doNothing = jest.fn((a, next) => next(a))
     const increment = jest.fn((a, next) => {
-      if (!a.options.increment) return next(a)
+      if (!a.increment) return next(a)
       return next({
         ...a,
         state: { count: a.state.count + 1 },
@@ -16,7 +16,7 @@ describe('executeMiddlewareFunctions', () => {
     })
     const stopIncrementing = jest.fn((a, next) => next({
       ...a,
-      options: { increment: false },
+      increment: false,
     }))
     const stopPropagation = jest.fn(a => a.state)
 
@@ -33,10 +33,11 @@ describe('executeMiddlewareFunctions', () => {
       doNothing,
     ]
 
+    const state = { count: 1 }
     const result: Return = await executeMiddlewareFunctions(
       middleware,
-      { increment: true },
-      { count: 1 },
+      { increment: true, state },
+      state,
     )
 
     expect(result).toStrictEqual({ count: 3 })

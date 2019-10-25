@@ -63,6 +63,11 @@ export const initialState: IInitialState = {
   resolved: false,
   aborted: false,
 }
+export const loadingState = <Data>(state: State<Data>) : ILoadingState | IReloadingState<Data> => ({
+  ...state,
+  aborted: false,
+  pending: true,
+})
 export const resolvedState = <Data>(data: Data) : IResolvedState<Data> => ({
   data,
   error: undefined,

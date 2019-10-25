@@ -27,8 +27,8 @@ test('e2e', async () => {
   const userInfo = await userInfoResource.run({ id: 1 })
   
   const loadingState = { resolved: false, data: undefined, error: undefined, pending: true, aborted: false }
-  expect(middleware['willLoad'].mock.calls[0][0].options.state).toStrictEqual(loadingState)
-  expect(middleware['willRequest'].mock.calls[0][0].options.state).toStrictEqual(loadingState)
+  expect(middleware['willLoad'].mock.calls[0][0].state).toStrictEqual(loadingState)
+  expect(middleware['willRequest'].mock.calls[0][0].state).toStrictEqual(loadingState)
   
   const resolvedState = { resolved: true, data: expectedUserInfo, error: undefined, pending: false, aborted: false }
   expect(middleware['resolved'].mock.calls[0][0].state).toStrictEqual(resolvedState)

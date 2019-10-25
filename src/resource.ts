@@ -1,7 +1,7 @@
-import { State, initialState, resolvedState, rejectedState } from './state'
+import { State, initialState, resolvedState, rejectedState, loadingState } from './state'
 import { hashCode } from './hash'
 import { IResource, ISubscription } from './types'
-import { IMiddleware, applyMiddlewareHook, IMiddlewareBuilder, Hooks } from './middleware'
+import { IMiddleware, applyMiddlewareHook, IMiddlewareBuilder, Hooks, IRunHookProps, IAbortHookProps } from './middleware'
 
 
 interface ICreateResourceParams<Data, Props> {
@@ -14,18 +14,6 @@ export function createResource<Data, Props = any> (
   options: ICreateResourceParams<Data, Props>,
   _middleware: IMiddlewareBuilder<Data, Props>[] = [],
 ): IResource<Data, Props> {
-  // types
-  interface IRunHookProps {
-    hash: string,
-    props: Props,
-    state: State<Data>
-  }
-  interface IAbortHookProps {
-    hash: string,
-    state: State<Data>
-    abortController?: AbortController
-  }
-
   // options
   let abortController = options.abortController
   if (!abortController && typeof AbortController !== 'undefined') abortController = new AbortController()
@@ -37,13 +25,13 @@ export function createResource<Data, Props = any> (
   let subscriptions: ISubscription<Data>[] = []
 
   // helpers
-  const applyRunHook = <Return>(name: Hooks, props: Props, value: Return) => applyMiddlewareHook<Data, Props, IRunHookProps, Return>
+  const applyRunHook = <Return>(name: Hooks, props: Props, value: Return) => applyMiddlewareHook<Data, Props, IRunHookProps<Data, Props>, Return>
     (middleware, name)
     ({ hash: currentHash!, props, state }, value)
-  const applyAbortHook = <Return>(name: Hooks, value: Return) => applyMiddlewareHook<Data, Props, IAbortHookProps, Return>
+  const applyAbortHook = <Return>(name: Hooks, value: Return) => applyMiddlewareHook<Data, Props, IAbortHookProps<Data>, Return>
     (middleware, name)
     ({ hash: currentHash!, state, abortController }, value)
-  const applySubscriptionHook = (name: Hooks) => applyMiddlewareHook<Data, Props, IAbortHookProps, void>
+  const applySubscriptionHook = (name: Hooks) => applyMiddlewareHook<Data, Props, IAbortHookProps<Data>, void>
     (middleware, name)
     ({ hash: currentHash!, state, abortController })
   
@@ -57,9 +45,9 @@ export function createResource<Data, Props = any> (
   // api
   const API: IResource<Data, Props> = {
     async abort() {
-      await applyAbortHook<void>('willAbort', undefined)
+      await applyAbortHook('willAbort', undefined)
       doAbort()
-      state = await applyAbortHook<State<Data>>('aborted', state)
+      state = await applyAbortHook('aborted', state)
       callSubscriptions()
     },
     subscribe(cb) {
@@ -94,26 +82,26 @@ export function createResource<Data, Props = any> (
       currentHash = newHash
       try {
         // loading phase
-        state = { ...state, pending: true }
-        await applyRunHook<void>('willLoad', props, undefined)
+        state = loadingState(state)
+        await applyRunHook('willLoad', props, undefined)
         callSubscriptions()
         
         // cache and fetch
         const cachedData = await applyRunHook<Data | undefined>('cache', props, state.data)
         if (cachedData) state = resolvedState(cachedData)
         else {
-          await applyRunHook<void>('willRequest', props, undefined)
+          await applyRunHook('willRequest', props, undefined)
           const data = await options.fn(props, state.data, abortController)
           state = resolvedState(data)
         }
-        state = await applyRunHook<State<Data>>('resolved', props, { ...state })
+        state = await applyRunHook('resolved', props, { ...state })
       } catch (error) {
         state = rejectedState(error as Error)
-        state = await applyRunHook<State<Data>>('rejected', props, { ...state })
+        state = await applyRunHook('rejected', props, { ...state })
       }
-      state = await applyRunHook<State<Data>>('finally', props, { ...state })
+      state = await applyRunHook('finally', props, { ...state })
       callSubscriptions()
-      await applyRunHook<void>('finished', props, undefined)
+      await applyRunHook('finished', props, undefined)
 
       return state
     },

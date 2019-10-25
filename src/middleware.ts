@@ -1,63 +1,69 @@
 import { IResource } from "./types"
 import { State } from "./state"
 
-interface IMiddlewareFunctionOptions<Options, Return> {
-  options: Options,
-  state: Return,
-}
-
-export interface IMiddlewareFunction<Options = any, Return = undefined | void> {
+export type IMiddlewareFunction<Options = any, Return = undefined | void> =
   (
-    options: IMiddlewareFunctionOptions<Options, Return>,
-    next: (opts: IMiddlewareFunctionOptions<Options, Return>) => Return | Promise<Return>,
-  ): Return | Promise<Return>
-}
+    options: Options,
+    next: (opts: Options) => Return | Promise<Return>,
+  )
+  => Return | Promise<Return>
 
-interface IBasicRunProps<Props, Data> {
-  props: Props
+interface IBasicHookProps<Data> {
   hash: string
   state: State<Data>
 }
-/** Active means it's return sets a value (state, data, etc...) */
-type IActiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props, Data>, Data>
-/** Passive means it doesn't have any affect */
-type IPassiveMiddlewareFunction<Props, Data> = IMiddlewareFunction<IBasicRunProps<Props, Data>, void>
+export interface IRunHookProps<Data, Props> extends IBasicHookProps<Data> {
+  props: Props
+}
+export interface IAbortHookProps<Data> extends IBasicHookProps<Data> {
+  abortController?: AbortController
+}
+export interface ISubscriptionHookProps<Data> extends IBasicHookProps<Data> {}
+
+type IRunHookFunction<Props, Data, Return = void | undefined> = IMiddlewareFunction<IRunHookProps<Data, Props>, Return>
+type IAbortHookFunction<Data, Return = void | undefined> = IMiddlewareFunction<IAbortHookProps<Data>, Return>
+type ISubscriptionHookFunction<Data> = IMiddlewareFunction<ISubscriptionHookProps<Data>>
+
 /** List of all available hooks */
 export type Hooks =
   'cache' | 'resolved' | 'rejected' | 'finished' | 'finally' | 'willLoad' | 'willRequest'
   | 'willAbort' | 'aborted'
   | 'subscription' | 'hasSubscription' | 'unsubscription' | 'noSubscriptions'
 
-/** Middleware interface, returned by the builder and used by the Resource API */
+/** Middleware interface, returned by the builder and used by the Resource instance */
 export interface IMiddleware<Data, Props> {
-  willAbort?: IPassiveMiddlewareFunction<Props, Data>
-  aborted?: IActiveMiddlewareFunction<Props, Data>
+  // ABORT HOOKS
+  willAbort?: IAbortHookFunction<Data>
+  aborted?: IAbortHookFunction<Data, State<Data>>
+
+  // SUBSCRIPTION HOOKS
   /** Called every time a subscription is added */
-  subscription?: IPassiveMiddlewareFunction<Props, Data>
+  subscription?: ISubscriptionHookFunction<Data>
   /** Called when a subscription is added and there was none before */
-  hasSubscription?: IPassiveMiddlewareFunction<Props, Data>
-  unsubscription?: IPassiveMiddlewareFunction<Props, Data>
+  hasSubscription?: ISubscriptionHookFunction<Data>
+  unsubscription?: ISubscriptionHookFunction<Data>
   /** Called when the only existing subscription is removed */
-  noSubscriptions?: IPassiveMiddlewareFunction<Props, Data>
+  noSubscriptions?: ISubscriptionHookFunction<Data>
+
+  // RUN HOOKS
   /** Called when run will begin */
-  willLoad?: IPassiveMiddlewareFunction<Props, Data>
+  willLoad?: IRunHookFunction<Props, Data>
   /** If a value is returned, it is used instead of calling fn  */
-  cache?: IActiveMiddlewareFunction<Props, Data>
+  cache?: IRunHookFunction<Props, Data, Data>
   /** Called before fn is called  */
-  willRequest?: IPassiveMiddlewareFunction<Props, Data>
-  resolved?: IActiveMiddlewareFunction<Props, Data>
-  rejected?: IActiveMiddlewareFunction<Props, Data>
-  finally?: IActiveMiddlewareFunction<Props, Data>
-  finished?: IPassiveMiddlewareFunction<Props, Data>
+  willRequest?: IRunHookFunction<Props, Data>
+  resolved?: IRunHookFunction<Props, Data, State<Data>>
+  rejected?: IRunHookFunction<Props, Data, State<Data>>
+  finally?: IRunHookFunction<Props, Data, State<Data>>
+  finished?: IRunHookFunction<Props, Data>
 }
 
 /**
  * This is how Middleware should be declared, as createResource
  * creates the middleware using this signature
  */
-export interface IMiddlewareBuilder<Data, Props> {
-  (API: IResource<Data, Props>): IMiddleware<Data, Props>
-}
+export type IMiddlewareBuilder<Data, Props> =
+  (API: IResource<Data, Props>) => IMiddleware<Data, Props>
 
 /**
  * Wraps all middleware functions by linking each item as the next function
@@ -69,29 +75,17 @@ export async function executeMiddlewareFunctions<Options, Return>(
   initialState: Return,
 ) {
   const size = middlewareFunctions.length
-  type ExecutionItem = (opts?: OptionalOptions) => Promise<Return> | Return
-  let current: ExecutionItem = (opts = {}) => opts.state || initialState
-  interface OptionalOptions {
-    options?: Options
-    state?: Return
-  }
+  type ExecutionItem = (opts?: Options) => Promise<Return> | Return
+  let current: ExecutionItem = () => initialState
 
   for (let i = size - 1; i >= 0; i--) {
     const fn = middlewareFunctions[i]
     const next = current
-    const wrapper = async (opts: OptionalOptions = {}) => {
-      return await fn({
-        options: opts.options || options,
-        state: opts.state || initialState,
-      }, next)
-    }
+    const wrapper = async (opts?: Options) => fn(opts || options, next)
     current = wrapper
   }
 
-  return current({
-    options,
-    state: initialState,
-  })
+  return current(options)
 }
 
 /**
